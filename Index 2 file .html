@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reel Prompt Studio</title>
+<style>
+:root{--bg:#14121f;--card:#1e1b2e;--line:#3a3555;--tx:#f4f2ff;--mu:#b9b4d6;--ac:#ffd23f;--ac2:#7af0d0;--r:14px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+header{padding:28px 20px 12px;max-width:1200px;margin:auto}
+h1{font:800 clamp(1.9rem,5vw,3rem)/1.05 "Arial Black",Impact,system-ui,sans-serif;margin:0 0 8px;letter-spacing:-.02em}
+h2{font-size:1.3rem;margin:0 0 10px}h3{font-size:1rem;margin:14px 0 6px}
+.note{color:var(--mu);font-size:.92rem}
+main{max-width:1200px;margin:auto;padding:12px 20px 60px;display:grid;gap:20px}
+section,form{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+label{display:block;font-weight:600;font-size:.9rem;margin-bottom:4px}
+input,select,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0f0d1a;color:var(--tx);font:inherit}
+textarea{min-height:70px;resize:vertical}
+button{font:inherit;font-weight:700;padding:10px 16px;border-radius:999px;border:2px solid var(--ac);background:transparent;color:var(--ac);cursor:pointer}
+button.p{background:var(--ac);color:#14121f}
+button:hover{filter:brightness(1.15)}
+:focus-visible{outline:3px solid var(--ac2);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center}
+.err{color:#ff9aa8;font-weight:600;margin-top:10px}
+.two{display:grid;gap:20px;grid-template-columns:1fr}
+@media(min-width:900px){.two{grid-template-columns:1.4fr 1fr}}
+.item{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:#171427}
+.item[contenteditable]{cursor:text}
+.tag{display:inline-block;font-size:.78rem;border:1px solid var(--mu);border-radius:999px;padding:1px 9px;margin-right:6px;color:var(--mu)}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+td,th{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+.tw{overflow-x:auto}
+.pal{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0}
+.sw{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+.sw button{width:auto;padding:6px 10px;border-radius:8px;border:2px solid #fff8;font-size:.8rem}
+.prev{width:min(100%,270px);aspect-ratio:9/16;margin:auto;border-radius:18px;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:8% 7%;border:3px solid #fff3}
+.prev .hl{font-size:clamp(1.1rem,5vw,1.5rem);line-height:1.1}
+.prev .cap{padding:6px 10px;border-radius:8px;font-size:.8rem}
+.safe{position:absolute;inset:12% 14% 22% 6%;border:2px dashed #fff;pointer-events:none;display:none;font-size:.65rem;color:#fff;text-shadow:0 0 3px #000}
+.safe.on{display:block}
+pre{white-space:pre-wrap;word-wrap:break-word;background:#0f0d1a;border:1px solid var(--line);border-radius:10px;padding:12px;font:.85rem/1.5 ui-monospace,Consolas,monospace;max-height:320px;overflow:auto;margin:6px 0}
+.fb{padding:6px 0}.ok{color:var(--ac2)}.warn{color:#ffb86b}
+#fall{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:16px;z-index:9}
+#fall.on{display:flex}#fall div{background:var(--card);padding:16px;border-radius:var(--r);max-width:640px;width:100%}
+#fall textarea{min-height:240px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header>
+<h1>Reel Prompt Studio</h1>
+<p>Plan a short-form video and build detailed prompts for any topic.</p>
+<p class="note">This tool builds prompts using templates and design rules. It does not call an AI service. Everything runs in your browser and nothing is sent anywhere.</p>
+</header>
+<main>
+<form id="f" novalidate>
+<h2>1. Your idea</h2>
+<div class="grid">
+<div><label for="topic">Topic *</label><input id="topic" maxlength="200" placeholder="e.g. How volcanoes work"></div>
+<div><label for="aud">Intended audience</label><input id="aud" maxlength="100" placeholder="e.g. Year 9 students"></div>
+<div><label for="purpose">Purpose</label><select id="purpose"></select></div>
+<div><label for="platform">Platform</label><select id="platform"></select></div>
+<div><label for="dur">Duration</label><select id="dur"><option value="15">15 seconds</option><option value="30" selected>30 seconds</option><option value="60">60 seconds</option></select></div>
+<div><label for="tone">Tone</label><select id="tone"></select></div>
+<div><label for="format">Format</label><select id="format"></select></div>
+<div><label for="style">Visual style</label><select id="style"></select></div>
+<div><label for="brand">Brand name (optional)</label><input id="brand" maxlength="40"></div>
+<div><label for="k1">Brand keyword 1</label><input id="k1" maxlength="30" placeholder="playful"></div>
+<div><label for="k2">Brand keyword 2</label><input id="k2" maxlength="30" placeholder="futuristic"></div>
+<div><label for="k3">Brand keyword 3</label><input id="k3" maxlength="30" placeholder="trustworthy"></div>
+<div><label for="cinc">Colours to include or avoid (optional)</label><input id="cinc" maxlength="100" placeholder="include #ff5533; avoid red text"></div>
+<div><label for="cta">Call to action</label><input id="cta" maxlength="100" placeholder="Leave blank for a suggestion"></div>
+</div>
+<div class="grid" style="margin-top:14px">
+<div><label for="avoid">Avoid these things</label><textarea id="avoid" maxlength="400"></textarea></div>
+<div><label for="facts">Verified facts or source notes (one per line)</label><textarea id="facts" maxlength="1500"></textarea></div>
+</div>
+<div class="row">
+<button type="button" class="p" id="gen">Generate Plan</button>
+<button type="button" id="alt">Another Version</button>
+<button type="button" id="ex">Try an Example</button>
+<button type="button" id="save">Save Draft</button>
+<button type="button" id="clr">Clear Saved Draft</button>
+</div>
+<div class="err" id="err" role="alert"></div>
+<p class="note" id="stmsg">Drafts are saved only in this browser. They do not sync between devices.</p>
+</form>
+<div id="out" hidden>
+<div class="two">
+<div>
+<section><h2>Hooks</h2><p class="note">Use “Keep” to hold a suggestion while you regenerate the rest.</p><div id="hooks"></div></section>
+<section style="margin-top:20px"><h2>Timed storyboard</h2><div class="tw" id="story"></div></section>
+</div>
+<section><h2>Reel appearance</h2><div id="pv"></div>
+<div class="row"><label style="margin:0"><input type="checkbox" id="safe" style="width:auto"> Show approximate safe area</label></div>
+<label for="scn" style="margin-top:8px">Preview scene</label><select id="scn"></select>
+<p class="note">Safe areas are approximate. Platform interfaces vary, so check on a real phone.</p></section>
+</div>
+<section><h2>Branding kit</h2><p class="note">Select a palette, then click a swatch to preview it. Contrast uses WCAG AA: 4.5:1 for text, 3:1 for accents.</p><div id="pals"></div>
+<h3>Logo direction</h3><p id="logodir"></p>
+<div class="grid"><div><label for="lt">Monogram text (1–3 characters)</label><input id="lt" maxlength="3"></div>
+<div><label for="ls">Shape</label><select id="ls"><option>circle</option><option>rounded square</option><option>hexagon</option><option>diamond</option></select></div></div>
+<div class="row"><div id="logo" aria-label="Logo preview" role="img"></div><button type="button" id="dsvg">Download SVG logo</button></div></section>
+<section><h2>Typography</h2><div id="fonts"></div></section>
+<section><h2>Captions, hashtags and production</h2><div id="caps"></div><div id="prod"></div></section>
+<section><h2>Plan Check</h2><div id="chk"></div><p class="note">Strong planning can improve a reel, but no tool can guarantee virality.</p></section>
+<section><h2>Copyable prompts</h2><div class="row"><button type="button" class="p" id="cpall">Copy Everything</button><button type="button" id="dl">Download Plan</button></div><p class="note">Nothing is sent automatically. Paste prompts into the tool of your choice.</p><div id="prompts"></div></section>
+</div>
+</main>
+<div id="fall" role="dialog" aria-modal="true" aria-label="Manual copy"><div><p>Your browser blocked automatic copying. Select the text and copy it manually (Ctrl/Cmd + C).</p><textarea id="fa" readonly></textarea><div class="row"><button type="button" id="fx">Close</button></div></div></div>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const O={purpose:["Teach","Entertain","Explain","Inspire","Review","Tell a story"],platform:["Instagram Reels","TikTok","YouTube Shorts"],tone:["Funny","Dramatic","Informative","Calm","Bold","Mysterious"],format:["Talking head","Faceless explainer","Mini-documentary","Tutorial","List","Myth versus fact","Before-and-after"],style:["Minimalist","Monochrome","Neon","Editorial","Retro","Cinematic","Playful"]};
+for(const k in O)$(k).innerHTML=O[k].map(v=>`<option>${v}</option>`).join("");
+const IDS=["topic","aud","purpose","platform","dur","tone","format","style","brand","k1","k2","k3","cinc","cta","avoid","facts"];
+const PAL={Minimalist:[["Paper & ink","#fafafa","#1a1a1a","#2f6fed"],["Soft stone","#eceae4","#2b2b2b","#c2410c"],["Quiet green","#f3f7f2","#1f2d24","#2e7d5b"]],
+Monochrome:[["Pure contrast","#111111","#ffffff","#bdbdbd"],["Light grey","#e9e9e9","#101010","#444444"],["Slate","#23272e","#f1f3f5","#9aa5b1"]],
+Neon:[["Night grid","#0b0620","#f5f0ff","#39ff14"],["Cyber pink","#120a2a","#ffffff","#ff2e93"],["Electric blue","#050d24","#e8f7ff","#00e5ff"]],
+Editorial:[["Magazine","#f6f1e7","#1c1917","#a31621"],["Navy print","#102a43","#f0f4f8","#f0b429"],["Ink on white","#ffffff","#111827","#0f766e"]],
+Retro:[["70s sunset","#2d1b2e","#fff1d6","#ff8c42"],["Arcade","#1b1b3a","#fdf6e3","#ffb703"],["Diner","#fff4e0","#3b1f1f","#d62828"]],
+Cinematic:[["Teal & amber","#0d1b24","#f2ede4","#f4a259"],["Noir","#0a0a0a","#eeeeee","#c9a227"],["Dusk","#1b1730","#f4efe6","#e76f51"]],
+Playful:[["Candy","#fff0f6","#2b1055","#ff4d8d"],["Sunny","#fff7cc","#1d2d44","#ff6b35"],["Fresh pop","#e8fff3","#14213d","#6a4cff"]]};
+const CALM=["Calm mist","#eef3f1","#26343a","#4a7c8c"];
+const FONTS=[["Bold sans-serif","'Arial Black','Segoe UI Black',Impact,system-ui,sans-serif","system-ui,-apple-system,'Segoe UI',Arial,sans-serif",800,"-0.02em","Punchy headings with a clean, neutral body. Best for bold, energetic reels."],
+["Editorial serif","Georgia,'Times New Roman',serif","Georgia,'Times New Roman',serif",700,"0","Elegant and trustworthy. Pair a serif heading with a plain sans body for small captions."],
+["Monospace","ui-monospace,Consolas,'Courier New',monospace","ui-monospace,Consolas,monospace",700,"0.02em","Technical, retro or mysterious. Keep lines short."],
+["Rounded friendly","'Trebuchet MS','Verdana',system-ui,sans-serif","'Trebuchet MS',Verdana,sans-serif",700,"0.01em","Warm and approachable. Good for playful or calm reels."],
+["Condensed impact","Impact,'Arial Narrow','Haettenschweiler',sans-serif","'Arial Narrow',Arial,sans-serif",400,"0.04em","Tall, tight headlines for lists and big claims. Use sparingly."],
+["Light geometric","'Century Gothic','Avenir Next',Futura,system-ui,sans-serif","'Century Gothic',Futura,system-ui,sans-serif",300,"0.08em","Airy and modern. Suits minimalist and calm styles."]];
+const FORMAT_NOTE="Fonts depend on the device. Each stack falls back gracefully if a font is missing.";
+const TR={Funny:"jump cut or whip pan",Dramatic:"dip to black or slow push-in",Informative:"clean wipe or slide",Calm:"slow cross-dissolve",Bold:"hard cut on the beat",Mysterious:"fade through shadow"};
+const MUSIC={Funny:"bouncy, light percussion with playful stings",Dramatic:"slow-building cinematic pulse",Informative:"steady, understated electronic beat",Calm:"soft ambient pads or gentle acoustic",Bold:"confident, driving beat",Mysterious:"low drones with sparse, eerie notes"};
+const CTAS={Teach:["Save this for revision.","Try it and tell us your result.","Share with someone who needs it."],Entertain:["Follow for the next one.","Send this to a friend.","Comment your own version."],Explain:["Save this for later.","Ask your question below.","Follow for more explainers."],Inspire:["Share it with someone who needs it.","Start today. One small step.","Tell us what you will try."],Review:["Tell us your rating in the comments.","Follow for more honest reviews.","Share your own opinion."],"Tell a story":["Follow for part two.","Comment what happens next.","Share your own story."]};
+const BEATS={sci:[["Close-up demonstration or labelled diagram of the key idea","Here is the idea behind {T} in plain English. [add a verified fact]","The key idea"],["Simple experiment or animated arrow diagram","Watch what changes when we adjust one thing.","Try it"],["Labelled diagram with each part highlighted","Each part has a job. [add a verified fact]","Label it"],["Source or textbook page shown on screen","Our evidence comes from [add a verified source].","Evidence"],["Everyday example filmed or drawn","You can spot this in daily life.","Spot it"]],
+hist:[["Timeline graphic with the date highlighted","First, the context. [add a verified fact]","Context"],["Archive-style image or map (check it is copyright-safe)","Here is what was happening. [add a verified fact]","What happened"],["Two perspectives shown side by side","People saw it differently. [add a verified fact]","Two views"],["Source citation card","Always check the source. This comes from [add a verified source].","Check it"],["Then-and-now comparison","Why it still matters today.","Why it matters"]],
+book:[["Book cover and a hand-written note card","Here is the premise, with no spoilers.","No spoilers"],["Quick montage of the mood and setting","The world feels like this.","The mood"],["Character card with three words","Meet the main character. [add a character detail]","Who to watch"],["Rating graphic with reasons","My honest view: [add your opinion].","My verdict"],["Quote card (keep it short and credited)","One line that stayed with me.","One line"]],
+tut:[["Finished result shown first","This is what you will make.","The goal"],["Close-up of materials or tools","You need only a few things. [add the list]","You need"],["Hands-on demonstration, one clear action","Do this first. [add the step]","Do this"],["Close-up of the next action","Then do this. [add the step]","Then this"],["Common mistake shown, then fixed","Avoid this common mistake. [add a tip]","Avoid this"]],
+gen:[["Clear visual that shows the core idea","The key thing to know about {T}. [add a verified fact]","The key point"],["Relatable everyday example","Here is how it shows up in real life.","In real life"],["Simple graphic comparing two things","Here is the difference that matters. [add a verified fact]","The difference"],["Close-up on a detail most people miss","Most people miss this. [add a verified fact]","Easy to miss"],["Quick recap graphic","So remember these points.","Recap"]]};
+const DURS={15:[3,5,4,3],30:[4,5,6,6,5,4],60:[5,7,8,9,9,8,8,6]};
+let S=null,variant=0,pins={};
+const fx=()=>{const o={};IDS.forEach(i=>o[i]=$(i).value.trim());o.dur=+o.dur;return o};
+const words=s=>s.trim().split(/\s+/).filter(Boolean).length;
+const pick=(a,n)=>a[((n%a.length)+a.length)%a.length];
+const clip=(s,n)=>s.length>n?s.slice(0,n-1)+"…":s;
+function cat(v){const t=v.topic.toLowerCase();if(/book|novel|author|fiction|chapter|series/.test(t))return"book";if(/histor|war|empire|ancient|revolution|century|medieval|roman|egypt|king|queen/.test(t))return"hist";if(v.format==="Tutorial"||/^how to|tutorial/.test(t))return"tut";if(/scien|physic|chem|bio|space|planet|volcan|energy|climate|atom|cell|gravity|ocean|animal|brain|weather|electric/.test(t))return"sci";return"gen"}
+function hooks(v,n){const T=v.topic,A=v.aud||"you",t=v.tone;
+const B={Question:[`Did you ever wonder how ${T} really works?`,`What would ${A} change if they understood ${T}?`,`Is what you know about ${T} actually right?`],
+"Surprising angle":[`Here is a side of ${T} most people never see.`,`${T}: the part nobody puts in the textbook.`,`Forget what you assumed about ${T}.`],
+"Relatable problem":[`Struggling to get your head around ${T}? Same.`,`Every time ${T} comes up, ${A} get lost. Let us fix that.`,`You have probably scrolled past ${T} ten times. Stay for ten seconds.`],
+Challenge:[`Can you explain ${T} in under ${v.dur} seconds? Try after this.`,`Challenge: spot three things about ${T} before the end.`,`Think you know ${T}? Prove it.`],
+"Visual opening":[`[Visual] Open on a bold close-up connected to ${T}, text slams in: “${clip(T,28)}”.`,`[Visual] Silent first beat: one striking object tied to ${T}, then a snap zoom.`,`[Visual] Split screen: what people expect versus what ${T} really looks like.`]};
+const tw={Funny:" (Yes, really.)",Dramatic:" Everything changes here.",Mysterious:" Nobody talks about this.",Bold:" Let us go.",Calm:"",Informative:""};
+return Object.keys(B).map((k,i)=>({k,text:pick(B[k],n+i)+(k==="Visual opening"?"":tw[t]||"")}))}
+function scenes(v,n,H){const c=cat(v),N={15:1,30:3,60:5}[v.dur],D=DURS[v.dur],facts=v.facts.split("\n").map(s=>s.trim()).filter(Boolean),tr=TR[v.tone],sc=[];
+const lim=d=>Math.floor(d*2.4);
+sc.push({d:D[0],v:"Opening: "+(H.find(h=>h.k==="Visual opening").text.replace("[Visual] ","")),s:H[0].text,t:clip(v.topic,28).toUpperCase(),tr});
+const list=BEATS[c];
+for(let i=0;i<N;i++){const b=list[(i+n)%list.length];let s=b[1].replace("{T}",v.topic);
+if(facts.length)s=s.replace("[add a verified fact]",facts[i%facts.length]);
+let t=b[2];if(v.format==="List")t=`${i+1}. ${t}`;else if(v.format==="Tutorial")t=`Step ${i+1}`;else if(v.format==="Myth versus fact")t=i%2?"FACT":"MYTH";else if(v.format==="Before-and-after")t=i===0?"BEFORE":i===N-1?"AFTER":t;
+sc.push({d:D[i+1],v:b[0]+(v.style==="Cinematic"?" (shallow depth of field)":v.style==="Neon"?" (glowing edges)":""),s,t:clip(t,24),tr})}
+sc.push({d:D[N+1],v:"Payoff: recap on one clean frame, the main takeaway in large type",s:`That is ${clip(v.topic,40)} in a nutshell.`,t:"Remember this",tr});
+const cta=v.cta||pick(CTAS[v.purpose],n);
+sc.push({d:D[N+2],v:"Ending: logo or handle, friendly face or icon, loop back to the opening frame",s:cta,t:clip(cta,30),tr:"hold, then loop"});
+let at=0;sc.forEach(s=>{s.a=at;at+=s.d;s.lim=lim(s.d)});return sc}
+function palettes(v,n){let a=(PAL[v.style]||PAL.Minimalist).map(p=>p.slice());if(v.tone==="Calm"||v.style==="Minimalist"&&v.tone==="Calm")a[2]=CALM.slice();
+const m=v.cinc.match(/#[0-9a-f]{6}\b/i);if(m&&!/avoid[^;]*#/i.test(v.cinc)){a[0][3]=m[0];a[0][0]+=" (your colour)"}return a}
+function caps(v,H){const T=v.topic;return[`${clip(T,60)} in ${v.dur} seconds. ${v.cta||"Save this for later."}`,`${H[0].text} Watch to the end.`,`Quick ${v.format.toLowerCase()} for ${v.aud||"everyone"}: ${clip(T,60)}.`]}
+function tags(v){const w=v.topic.toLowerCase().replace(/[^a-z0-9 ]/g,"").split(/\s+/).filter(x=>x.length>2).slice(0,2);const b=[...w.map(x=>"#"+x),"#"+v.platform.replace(/\s/g,"").replace("InstagramReels","Reels"),"#learnontiktok".replace("learnontiktok",v.purpose==="Review"?"review":"learn"),"#"+v.format.replace(/[^a-z]/gi,"").toLowerCase()];return[...new Set(tags2(b))].slice(0,5)}
+function tags2(b){const e=["#shorts","#studytok","#didyouknow","#creative"];while(b.length<5)b.push(e.shift());return b}
+function prod(v){const calm=v.tone==="Calm",P=[`Filming: shoot vertically (9:16) at the highest quality your phone allows. Keep the main subject in the central 60% of the frame.`,`Lighting: face a window or soft lamp; avoid strong light behind you.${v.style==="Cinematic"?" Add one warm side light for depth.":""}`,`Framing: ${v.format==="Talking head"?"eye level, shoulders and head in frame, look at the lens":"steady shots, one idea per frame"}.`,`Editing: ${calm?"slow, gentle transitions and few cuts":"cut roughly every 2–4 seconds"}; match cuts to the beat.${v.style==="Retro"?" Add a light film-grain overlay.":""}`,`Music mood: ${MUSIC[v.tone]}. Use only music you have the licence for; this app provides none.`,`Subtitles: always add captions, at least 24px equivalent, high contrast, inside the safe area, and no more than two lines.`,`Accessibility: avoid flashing effects, do not rely on colour alone, describe key visuals in the caption and keep narration clear of loud music.`];return P}
+function build(){const v=fx(),H0=hooks(v,variant);const H=H0.map((h,i)=>pins["h"+i]&&S?S.hooks[i]:h);
+const sc=scenes(v,variant,H),C=caps(v,H).map((c,i)=>pins["c"+i]&&S?S.caps[i]:c);
+S={v,hooks:H,scenes:sc,pals:palettes(v,variant),pi:S&&S.pi<3?S.pi:0,ci:3,fi:S&&S.fi!=null?S.fi:variant%FONTS.length,caps:C,tags:tags(v),cat:cat(v),shape:"circle"};
+if(!S.fixed){S.fi=variant%FONTS.length}}
+function lum(h){const c=[1,3,5].map(i=>parseInt(h.substr(i,2),16)/255).map(x=>x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4));return .2126*c[0]+.7152*c[1]+.0722*c[2]}
+function cr(a,b){const x=lum(a),y=lum(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
+const col=()=>{const p=S.pals[S.pi];return{n:p[0],bg:p[1],tx:p[2],ac:p[3]}};
+function mono(){const v=S.v,t=($("lt").value||(v.brand||v.topic).replace(/[^\p{L}\p{N}]/gu," ").trim().split(/\s+/).map(w=>w[0]).join("").slice(0,2)||"R").toUpperCase(),c=col(),sh=$("ls").value;
+const f={circle:`<circle cx="60" cy="60" r="54" fill="${c.ac}"/>`,"rounded square":`<rect x="8" y="8" width="104" height="104" rx="26" fill="${c.ac}"/>`,hexagon:`<polygon points="60,6 108,33 108,87 60,114 12,87 12,33" fill="${c.ac}"/>`,diamond:`<polygon points="60,4 116,60 60,116 4,60" fill="${c.ac}"/>`}[sh];
+const tc=cr(c.ac,"#111111")>=cr(c.ac,"#ffffff")?"#111111":"#ffffff";
+return`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="${esc(t)} logo">${f}<text x="60" y="${t.length>2?72:76}" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="${t.length>2?36:50}" fill="${tc}">${esc(t)}</text></svg>`}
+function render(){const v=S.v;$("out").hidden=false;
+$("hooks").innerHTML=S.hooks.map((h,i)=>`<div class="item"><span class="tag">${esc(h.k)}</span><span contenteditable="true" data-h="${i}" role="textbox" aria-label="Edit hook ${i+1}">${esc(h.text)}</span><div class="row" style="margin-top:6px"><button type="button" data-pin="h${i}" aria-pressed="${!!pins["h"+i]}">${pins["h"+i]?"★ Kept":"☆ Keep"}</button></div></div>`).join("");
+$("story").innerHTML=`<table><tr><th>Time</th><th>Visual</th><th>Voiceover</th><th>On-screen text</th><th>Transition</th></tr>`+S.scenes.map((s,i)=>`<tr><td>${s.a}–${s.a+s.d}s</td><td>${esc(s.v)}</td><td contenteditable="true" data-s="${i}" role="textbox" aria-label="Edit voiceover scene ${i+1}">${esc(s.s)}</td><td>${esc(s.t)}</td><td>${esc(s.tr)}</td></tr>`).join("")+`</table><p class="note">Total: ${S.scenes.reduce((a,s)=>a+s.d,0)}s of ${v.dur}s. Voiceover is limited to about 2.4 words per second.</p>`;
+$("scn").innerHTML=S.scenes.map((s,i)=>`<option value="${i}">Scene ${i+1}</option>`).join("");
+pal();font();$("lt").value=$("lt").value;logo();
+$("logodir").textContent=`Direction: a ${v.style.toLowerCase()} geometric badge using the initials of “${v.brand||v.topic}”, in the accent colour, with ${[v.k1,v.k2,v.k3].filter(Boolean).join(", ")||"clean, simple"} personality. Original shapes only; do not imitate existing logos.`;
+$("caps").innerHTML="<h3>Captions</h3>"+S.caps.map((c,i)=>`<div class="item"><span contenteditable="true" role="textbox" aria-label="Edit caption ${i+1}">${esc(c)}</span> <button type="button" data-pin="c${i}" aria-pressed="${!!pins["c"+i]}">${pins["c"+i]?"★ Kept":"☆ Keep"}</button></div>`).join("")+`<h3>Hashtag suggestions</h3><p>${S.tags.map(esc).join(" ")}</p><p class="note">These are suggestions, not live trending data. Check the platform for current trends.</p>`;
+$("prod").innerHTML="<h3>Production ideas</h3><ul>"+prod(v).map(p=>`<li>${esc(p)}</li>`).join("")+"</ul>";
+check();prompts();preview()}
+function pal(){$("pals").innerHTML=S.pals.map((p,i)=>{const c=[["Background",p[1]],["Text",p[2]],["Accent",p[3]]],r1=cr(p[2],p[1]),r2=cr(p[3],p[1]);
+return`<div class="pal"><label style="display:flex;gap:8px;align-items:center"><input type="radio" name="pal" value="${i}" style="width:auto" ${i===S.pi?"checked":""}> ${esc(p[0])}</label><div class="sw">${c.map(x=>`<button type="button" data-sw="${i}" style="background:${x[1]};color:${lum(x[1])>.4?"#000":"#fff"}">${x[0]} ${x[1]}</button>`).join("")}</div><div>${r1>=4.5?'<span class="ok">✔ Pass</span>':'<span class="warn">⚠ Below AA</span>'} text on background ${r1.toFixed(1)}:1 · ${r2>=3?'<span class="ok">✔ Pass</span>':'<span class="warn">⚠ Below AA</span>'} accent on background ${r2.toFixed(1)}:1 (large text and graphics)</div></div>`}).join("")}
+function font(){$("fonts").innerHTML=FONTS.map((f,i)=>`<div class="item"><label style="display:flex;gap:8px;align-items:center"><input type="radio" name="font" value="${i}" style="width:auto" ${i===S.fi?"checked":""}> ${f[0]}</label><div style="font:${f[3]} 28px/1.1 ${f[1]};letter-spacing:${f[4]}">${esc(clip(S.v.topic,40))}</div><div style="font-family:${f[2]};font-size:15px">Body sample: short, clear captions are easier to read on a small screen.</div><p class="note">Headline 28–40px, weight ${f[3]}, spacing ${f[4]}. Body 16–18px. ${f[5]} ${FORMAT_NOTE}</p></div>`).join("")}
+function logo(){$("logo").innerHTML=mono()}
+function preview(){const c=col(),f=FONTS[S.fi],i=+$("scn").value||0,s=S.scenes[i];
+$("pv").innerHTML=`<div class="prev" style="background:${esc(c.bg)};color:${esc(c.tx)}"><div style="display:flex;justify-content:space-between;align-items:center"><div style="width:44px">${mono().replace('width="120" height="120"','width="44" height="44"')}</div><b style="font-size:.75rem;color:${c.ac}">${esc(S.v.brand||"")}</b></div><div class="hl" style="font:${f[3]} clamp(1.2rem,6vw,1.7rem)/1.1 ${f[1]};letter-spacing:${f[4]}">${esc(s.t)}<div style="height:5px;width:60px;background:${c.ac};margin-top:8px"></div></div><div class="cap" style="background:${c.tx};color:${c.bg};font-family:${f[2]}">${esc(clip(s.s,90))}</div><div class="safe ${$("safe").checked?"on":""}">Approx. safe area</div></div>`}
+function check(){const v=S.v,R=[];const add=(ok,m)=>R.push([ok,m]);
+add(v.topic.length>=3&&v.aud.length>0,v.aud?"Topic and audience are filled in.":"Add an audience so the hooks fit the right people.");
+add(!!S.hooks[0].text,"There is an opening hook.");
+const tot=S.scenes.reduce((a,s)=>a+s.d,0);add(tot===v.dur,`Scene timings total ${tot}s (selected ${v.dur}s).`);
+const over=S.scenes.filter(s=>words(s.s)>s.lim);add(!over.length,over.length?`Scene${over.length>1?"s":""} ${over.map(s=>S.scenes.indexOf(s)+1).join(", ")} may be too long for the time. Shorten the voiceover.`:"Voiceover fits the speaking time (about 2.4 words per second).");
+const long=S.scenes.filter(s=>words(s.t)>6||s.t.length>30);add(!long.length,long.length?"Some on-screen text is long. Aim for six words or fewer.":"On-screen text is short.");
+const p=col(),r=cr(p.tx,p.bg);add(r>=4.5,`Text contrast is ${r.toFixed(1)}:1 ${r>=4.5?"(meets AA)":"(below AA 4.5:1; pick another palette)"}.`);
+add(!!(v.cta||S.scenes[S.scenes.length-1].s),v.cta?"Your call to action is included.":"No call to action given, so one was suggested.");
+const ph=S.scenes.filter(s=>s.s.includes("[add")).length;add(ph===0&&!!v.facts,ph?`${ph} scene(s) contain “[add a verified fact]” placeholders. Fill them in and check each claim against a reliable source.`:"Check every factual claim against your sources.");
+$("chk").innerHTML=R.map(x=>`<div class="fb">${x[0]?'<span class="ok">✔ Pass</span>':'<span class="warn">⚠ Check</span>'} ${esc(x[1])}</div>`).join("")}
+function prompts(){const v=S.v,c=col(),f=FONTS[S.fi],T=v.topic,kw=[v.k1,v.k2,v.k3].filter(Boolean).join(", ")||"clear, friendly, modern",
+av=v.avoid||"misleading claims, invented statistics, copyrighted characters or logos",
+ctx=`Topic: ${T}\nAudience: ${v.aud||"general students"}\nPurpose: ${v.purpose}\nPlatform: ${v.platform}\nDuration: ${v.dur} seconds\nTone: ${v.tone}\nFormat: ${v.format}`,
+look=`Visual style: ${v.style}\nColours: background ${c.bg}, text ${c.tx}, accent ${c.ac}${v.cinc?` (user notes: ${v.cinc})`:""}\nTypography: ${f[0]} (${f[1].split(",")[0].replace(/'/g,"")}-style headings, weight ${f[3]})\nBrand: ${v.brand||"none"}; keywords: ${kw}`,
+acc="Accessibility: burned-in subtitles, high contrast (4.5:1 minimum), no flashing, short on-screen text, key text inside the safe area.",
+sb=S.scenes.map((s,i)=>`Scene ${i+1} (${s.a}-${s.a+s.d}s)\n  Visual: ${s.v}\n  Voiceover: ${s.s}\n  On-screen text: ${s.t}\n  Transition: ${s.tr}`).join("\n"),
+facts=v.facts?`Verified facts supplied by the student:\n${v.facts}`:"No verified facts supplied. Use “[add a verified fact]” rather than inventing information.";
+S.P=[["Full reel production brief",`REEL PRODUCTION BRIEF\n${ctx}\n${look}\n${acc}\n\nHooks:\n${S.hooks.map((h,i)=>`${i+1}. ${h.text}`).join("\n")}\n\nStoryboard:\n${sb}\n\nCall to action: ${v.cta||S.scenes[S.scenes.length-1].s}\n${facts}\nAvoid: ${av}`],
+["Video-generation prompt",`Create a vertical 9:16 video, ${v.dur} seconds, for ${v.platform}. ${v.tone} tone, ${v.style} visual style, ${v.format} format, about "${T}" for ${v.aud||"a general student audience"}.\nPalette: ${c.bg}, ${c.tx}, ${c.ac}.\n\n${S.scenes.map((s,i)=>`${s.a}-${s.a+s.d}s: ${s.v}. Transition: ${s.tr}.`).join("\n")}\n\nKeep key subjects inside the safe area. Do not show: ${av}.\nFallback: if you cannot reproduce exact lettering or captions accurately, leave clean space and I will add the exact text and captions during editing:\n${S.scenes.map(s=>`“${s.t}”`).join(", ")}`],
+["Image or thumbnail prompt",`Design a 9:16 thumbnail / cover image about "${T}" for ${v.aud||"students"}. ${v.style} style, ${v.tone.toLowerCase()} mood. Colours ${c.bg}, ${c.tx}, ${c.ac}. Large readable headline space with ${f[0]} typography; leave the top 12% and bottom 22% clear. Headline text to add in editing: "${clip(T,30)}". Avoid: ${av}. High contrast, accessible, original artwork only.`],
+["Logo and branding prompt",`Design an original ${v.style.toLowerCase()} logo for "${v.brand||T}". Personality: ${kw}. Geometric monogram, simple enough to read at small size, colours ${c.ac} on ${c.bg}. ${f[0]} lettering. Do not copy or imitate any existing logo. Avoid: ${av}. Provide a flat vector-style version and a one-colour version.`],
+["Scriptwriting prompt",`Write a ${v.dur}-second voiceover script for ${v.platform} about "${T}" for ${v.aud||"students"}. Purpose: ${v.purpose}. Tone: ${v.tone}. Format: ${v.format}. Use about ${Math.floor(v.dur*2.4)} words at most, short sentences, a strong opening line, and this call to action: ${v.cta||"suggest one"}.\nFollow this structure:\n${S.scenes.map((s,i)=>`${i+1}. ${s.t} (${s.d}s)`).join("\n")}\n${facts}\nUse only the facts above; mark gaps with “[add a verified fact]”. Avoid: ${av}.`]];
+$("prompts").innerHTML=S.P.map((p,i)=>`<h3>${p[0]}</h3><pre id="pp${i}" tabindex="0">${esc(p[1])}</pre><button type="button" data-cp="${i}">Copy this prompt</button>`).join("")}
+function all(){return`REEL PROMPT STUDIO PLAN\nGenerated locally from templates. No AI service was used.\n\n`+S.P.map(p=>`=== ${p[0].toUpperCase()} ===\n${p[1]}`).join("\n\n")+`\n\nHashtag suggestions (not live trends): ${S.tags.join(" ")}\nCaptions:\n${S.caps.map((c,i)=>`${i+1}. ${c}`).join("\n")}\n`}
+async function copy(t){try{await navigator.clipboard.writeText(t);msg("Copied to clipboard.")}catch(e){$("fa").value=t;$("fall").classList.add("on");$("fa").focus();$("fa").select()}}
+let mt;function msg(m){$("stmsg").textContent=m;clearTimeout(mt);mt=setTimeout(()=>$("stmsg").textContent="Drafts are saved only in this browser. They do not sync between devices.",3500)}
+function dlf(name,text,type){const a=document.createElement("a"),u=URL.createObjectURL(new Blob([text],{type}));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),500)}
+function go(nv){const v=fx();$("err").textContent="";if(v.topic.length<3){$("err").textContent="Please enter a topic of at least three characters.";$("topic").focus();return}
+if(nv)variant++;if(!S)S={};build();render()}
+function sync(){const c=S.pals[S.pi];S.P=null;logo();pal();preview();check();prompts()}
+$("gen").onclick=()=>go(false);$("alt").onclick=()=>go(true);
+$("ex").onclick=()=>{const e={topic:"How volcanoes erupt",aud:"Year 9 science students",purpose:"Explain",platform:"TikTok",dur:"30",tone:"Informative",format:"Faceless explainer",style:"Cinematic",brand:"Lava Lab",k1:"curious",k2:"trustworthy",k3:"bold",cinc:"include #ff6a00",cta:"Follow for more science in 30 seconds.",avoid:"gory disaster footage, scare tactics, invented statistics",facts:"Magma is molten rock beneath the surface.\nLava is magma that has reached the surface.\nPressure from trapped gas can drive an eruption."};IDS.forEach(i=>$(i).value=e[i]);go(false)};
+function store(f){try{return f()}catch(e){$("err").textContent="Browser storage is unavailable, so drafts cannot be saved here.";return null}}
+$("save").onclick=()=>{const ok=store(()=>{localStorage.setItem("rps-draft",JSON.stringify(fx()));return 1});if(ok){$("err").textContent="";msg("Draft saved in this browser only.")}};
+$("clr").onclick=()=>{const ok=store(()=>{localStorage.removeItem("rps-draft");return 1});if(ok)msg("Saved draft cleared.")};
+store(()=>{const d=JSON.parse(localStorage.getItem("rps-draft")||"null");if(d)IDS.forEach(i=>{if(d[i]!=null)$(i).value=d[i]});$("err").textContent=""});
+$("fx").onclick=()=>$("fall").classList.remove("on");
+document.addEventListener("keydown",e=>{if(e.key==="Escape")$("fall").classList.remove("on")});
+$("safe").onchange=preview;$("scn").onchange=preview;
+$("lt").oninput=()=>{logo();preview()};$("ls").onchange=()=>{logo();preview()};
+$("dsvg").onclick=()=>dlf("logo.svg",mono(),"image/svg+xml");
+$("cpall").onclick=()=>copy(all());$("dl").onclick=()=>dlf("reel-plan.txt",all(),"text/plain");
+document.addEventListener("click",e=>{const b=e.target.closest("button");if(!b||!S)return;
+if(b.dataset.pin){pins[b.dataset.pin]=!pins[b.dataset.pin];const k=b.dataset.pin;b.textContent=pins[k]?"★ Kept":"☆ Keep";b.setAttribute("aria-pressed",!!pins[k])}
+if(b.dataset.cp!=null)copy(S.P[+b.dataset.cp][1]);
+if(b.dataset.sw!=null){S.pi=+b.dataset.sw;sync()}});
+document.addEventListener("change",e=>{if(!S)return;if(e.target.name==="pal"){S.pi=+e.target.value;sync()}if(e.target.name==="font"){S.fi=+e.target.value;S.fixed=1;preview();prompts()}});
+document.addEventListener("input",e=>{if(!S)return;const t=e.target;if(t.dataset&&t.dataset.h!=null){S.hooks[+t.dataset.h].text=t.textContent;S.scenes[0].s=S.hooks[0].text;prompts()}
+if(t.dataset&&t.dataset.s!=null){S.scenes[+t.dataset.s].s=t.textContent;check();prompts()}});
+</script>
+</body>
+</html>
